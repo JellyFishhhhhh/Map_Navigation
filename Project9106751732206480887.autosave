@@ -1,0 +1,157 @@
+//import controlP5.*;
+import java.util.Map;
+
+float mapX = 0, mapY = 0, mapW = 0, mapH = 0, pinX = 100, pinY = 100, pinW = 0, pinH = 0;
+int panFromX = 0, panFromY = 0, panToX = 0, panToY = 0, xShift, yShift;
+float scaler = 1;
+
+PImage map;
+PImage pin;
+final Frame frame = Frame.getInstance(this);
+color white = color(255, 255, 255);
+HashMap<String, ArrayList<PVector>> poi = new HashMap<String, ArrayList<PVector>>();
+ControlP5 cp5;
+
+void build_POI_List(){
+    String[] lines = loadStrings("POI.txt");
+    String category = "";
+    ArrayList<PVector> vectors = new ArrayList<PVector>();
+    for (int i = 0 ; i < lines.length; i++) {
+        if(!lines[i].matches(".*\\d.*")){
+            if(i!=0){
+                poi.put(category, vectors);
+            }
+            category = lines[i];
+            vectors = new ArrayList<PVector>();
+        }
+        else{
+            int[] coordinate = int(split(lines[i], ","));
+            PVector v = new PVector(coordinate[0], coordinate[1]);
+            vectors.add(v);
+        }
+    }
+    poi.put(category, vectors);
+}
+
+boolean mouse_in_Screen(){
+    if(mouseX > 25 && mouseX < 665 && mouseY > 25 && mouseY < 985)
+        return true;
+    else 
+        return false;
+}
+
+void mousePressed() {
+    panFromX = mouseX;
+    panFromY = mouseY;
+}
+ 
+void mouseDragged() {
+    panToX = mouseX;
+    panToY = mouseY;
+    xShift = panToX - panFromX;
+    yShift = panToY - panFromY;
+    mapX = mapX + xShift;
+    mapY = mapY + yShift;
+    pinX = pinX + xShift;
+    pinY = pinY + yShift;
+    panFromX = panToX;
+    panFromY = panToY;
+
+    mapX = int(constrain(mapX, scaler * (width - mapW), 0));
+    mapY = int(constrain(mapY, scaler * (height - mapH), 0));
+
+    // pinX = int(constrain(pinX, scaler * (width - mapW), 0));
+    // pinY = int(constrain(pinY, scaler * (height - mapH), 0));
+}
+
+void mouseWheel(MouseEvent event) {
+    float e = event.getCount();
+    if(e == -1.0)
+        scaler +=0.1;
+    if(e == 1.0){
+        if(scaler > 1)
+            scaler -=0.1;
+    }
+}
+
+void setup() {
+    size(690, 1060);
+    cp5 = new ControlP5(this);
+    cp5.addButton("Shoppers")
+        .setPosition(25, 1010)
+        .setSize(75, 25)
+    ;
+    cp5.addButton("NB Liquor")
+        .setPosition(125, 1010)
+        .setSize(75, 25)
+    ;
+    cp5.addButton("Canada Post")
+        .setPosition(225, 1010)
+        .setSize(75, 25)
+    ;
+    cp5.addButton("Tim Hortons")
+        .setPosition(325, 1010)
+        .setSize(75, 25)
+    ;
+
+    background(white);
+    map = loadImage("freddy.png");
+    pin = loadImage("pin.png");
+    build_POI_List();
+    mapW = map.width;
+    mapH = map.height;
+
+    pinW = pin.width;
+    pinH = pin.height;
+}
+
+void draw() {
+    if(!mouse_in_Screen())
+        cursor(HAND);
+    background(white);
+    pushMatrix();
+    translate(mapW/2, mapH/2);
+    scale(scaler);
+    translate(-mapW/2, -mapH/2);
+    image(map, mapX, mapY, mapW, mapH);
+    translate(pinW/2, pinH/2);
+    translate(-pinW/2, -pinH/2);
+    image(pin, pinX, pinY, pinW, pinH);
+    println("Map: ",mapX, mapY, mapW, mapH, "Pin: ",pinX, pinY, pinW, pinH);
+    popMatrix();
+    frame.layout();
+    int size = poi.get("Tim Hortons").size();
+    // for(int i = 0; i<size; i++){
+    //     PVector v = ((ArrayList<PVector>)poi.get("Tim Hortons")).get(i);
+    //     image(pin, v.x, v.y, 10, 10);
+    // }
+}
+
+static class Frame{
+    private static Frame inst;
+    private static PApplet p;
+    private Frame(){}
+    static Frame getInstance(PApplet papp){
+        if(inst == null){
+            inst = new Frame();
+            p = papp;
+        }
+        return inst;
+    }
+
+    void layout(){
+        this.display();
+    }
+
+    void display(){
+        p.fill(255);
+        p.noStroke();
+        p.rect(0, 0, 690, 25);
+        p.rect(0, 0, 25, 1060);
+        p.rect(665, 0, 690, 1060);
+        p.rect(0, 985, 690, 1060);
+        p.fill(255, 0);
+        p.stroke(0);
+        p.rect(25, 25, 640, 960);
+    }
+}
